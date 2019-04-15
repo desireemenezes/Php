@@ -1,56 +1,113 @@
 <?php
+    include_once('Produto.php');
 
-include_once('classeProduto.php'); // sera incluido apenas uma vezsad
+    $produtos = [];
 
-$produtos = []; //declara variavel produtos vazia
 
-function inserirProduto(Produto $produto){ // variavle produto recebe a classe com seus atributos
-    array_push($GLOBALS['produtos'],$produto);
-}
 
-function buscarProdutoPorId($idProduto) {
-    foreach($GLOBALS['produtos'] as $el){
-        if($el->$idProduto == $idProduto) 
-            return $el;
-        
+    function inserir(Produto $produto){
+        //inserir no banco postgresql
+        $conexao = "pgsql:host=localhost;dbname=app_produtos";
+        $usuario = "postgres";
+        $senha = "postgresql";
+
+        $pdo = new PDO($conexao,$usuario,$senha);
+
+        $comando = $pdo->prepare("INSERT INTO produto(nome,preco) VALUES (:nome, :preco)");
+
+        $comando->bindParam(':nome',$produto->nome);
+        $comando->bindParam(':preco',$produto->preco);
+
+        $comando->execute();
+
+        var_dump($pdo->lastInsertId());
     }
-    return null;
-}
 
-function deletarProdutos($id) {
-    foreach($GLOBALS['produtos'] as $i => $produto){
-        if($produto->$id === $id) 
-           array_splice($GLOBALS['produtos'],$i,1);
-        
+    function buscarPorId($id){
+        $conexao = "pgsql:host=localhost;dbname=app_produtos";
+        $usuario = "postgres";
+        $senha = "postgresql";
+        $pdo = new PDO($conexao, $usuario, $senha);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE,PDO::FETCH_ASSOC);
+        $pdo->setAttribute(PDO::ATTR_STRINGIFY_FETCHES,false);
+        $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES,false);
+        $q = "SELECT * FROM produto WHERE id=:id";
+        $comando = $pdo->prepare($q);
+        $comando->bindParam("id", $id);
+        $comando->execute();
+        $obj = $comando->fetch(PDO::FETCH_OBJ);
+        return($obj);
     }
-}
 
-function atualizarProduto($id,Produto $idAlterado){ //produto recebe id alterado
-    foreach($GLOBALS['produtos'] as $i => $produto){
-        if($produto->$id === $id) {
-            $produto->nome = $idAlterado->nome;
-            $produto->preco = $idAlterado->preco;
+    function listar(){
+        $conexao = "pgsql:host=localhost;dbname=app_produtos";
+        $usuario = "postgres";
+        $senha = "postgresql";
+        $pdo = new PDO($conexao, $usuario, $senha);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE,PDO::FETCH_ASSOC);
+        $pdo->setAttribute(PDO::ATTR_STRINGIFY_FETCHES,false);
+        $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES,false);
+        $q = "SELECT * FROM produto";
+        $comando = $pdo->prepare($q);
+        $comando->execute();
+        $objs = array();
+        while($linha = $comando->fetch(PDO::FETCH_OBJ))
+        {
+            $objs[] = $linha;
         }
+        return($objs);
     }
-}
 
-function listarProdutos(){
-    return $GLOBALS['produtos'];
-}
+    function deletar($id)
+    {
+        $conexao = "pgsql:host=localhost;dbname=app_produtos";
+        $usuario = "postgres";
+        $senha = "postgresql";
+        $pdo = new PDO($conexao, $usuario, $senha);
 
-inserirProduto(new Produto(1, "mesa", 539.5));
-inserirProduto(new Produto(2, "mesa", 539.5));
-inserirProduto(new Produto(3, "mesa", 539.5));
+        $qdeletar = "DELETE FROM produto WHERE id=:id";
+        $comando = $pdo->prepare($qdeletar);
 
-print_r(buscarProdutoPorId(3));
-print("\n");
-deletarProdutos(2);
+        $comando->bindParam(':id',$id);
+
+        $comando->execute();
+        
+    }
+
+    function atualizar($id,Produto $produtoAlterado)
+    {
+        $conexao = "pgsql:host=localhost;dbname=app_produtos";
+        $usuario = "postgres";
+        $senha = "postgresql";
+        $pdo = new PDO($conexao, $usuario, $senha);
+
+        $qAtualizar = "UPDATE produto SET nome=:nome, preco=:preco WHERE id=:id";            
+        $comando = $pdo->prepare($qAtualizar);
+
+        $comando->bindParam(":nome",$produtoAlterado->nome);
+        $comando->bindParam(":preco",$produtoAlterado->preco);
+        $comando->bindParam(":id",$id);
+        $comando->execute(); 
+        
+    }
 
 
-$produto = buscarProdutoPorId(3);
-$produto->nome = "cadeira";
-atualizarProduto(3,$produto);
-print_r(listarProdutos());
-print("\n");
+    //Visualizem se salvou corretamente
+    //O id é 0 porque é auto-increment.
+//  inserir(new Produto(0,"mesa",539.20));
+//  inserir(new Produto(0,"cadeira",135.30));
+//    inserir(new Produto(0,"TV",3000));
+
+//    print_r(buscarPorId(3));
+
+//    deletar(3);
+    
+    $obj = buscarPorId(2);
+    $produto = new Produto(0,$obj->nome,floatval($obj->preco));
+    $produto->nome = "cadeira X";
+    atualizar(2,$produto);
+    
+    print_r(listar());
+
 
 ?>
