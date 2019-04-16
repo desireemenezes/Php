@@ -3,8 +3,6 @@
 
     $produtos = [];
 
-
-
     function inserir(Produto $produto){
         //inserir no banco postgresql
         $conexao = "pgsql:host=localhost;dbname=app_produtos";
